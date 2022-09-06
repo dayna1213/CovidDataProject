@@ -1,0 +1,41 @@
+
+-- South Korea Statistics 
+-- Likelihood of death, Percentage of Population infected from Covid in South Korea
+
+SELECT location, date, total_cases, total_deaths, 
+ROUND(((total_deaths + 0.00) / total_cases)*100, 2) AS death_perc,
+ROUND(((total_cases + 0.00)/population)*100, 2) as infect_perc
+FROM CovidDeaths
+WHERE location LIKE '%korea%'
+ORDER BY 1,2
+
+--Worldwide Statistics 
+--Ranking Top 10 Countries with Highest Death Count per ㅔpopulation 
+SELECT location, 
+MAX(Total_deaths + 0.00) as TotalDeathCount
+FROM CovidDeaths
+WHERE continent is not null 
+GROUP BY Location
+ORDER BY TotalDeathCount desc
+Limit 10
+
+-- Ranking continents with highest death count per population
+SELECT continent,
+MAX(cast(total_deaths as INT)) as TotalDeathCount
+FROM CovidDeaths
+WHERE continent IS NOT NULL
+GROUP BY continent
+ORDER BY TotalDeathCount desc
+
+-- Using CTE to Compare population, and vaccination rate for each country per day 
+WITH PopVsVacc AS(
+Select d.continent, d.location, d.date, d.population, v.new_vaccinations,
+			 SUM(CAST(v.new_vaccinations as int)) OVER (PARTITION BY d.location ORDER BY d.location, d.date) as RollingNewVaccine
+From CovidDeaths d
+LEFT Join CovidVaccinations v
+	On d.location = v.location
+	and d.date = v.date
+where d.continent is not null
+)
+SELECT *, ROUND(((RollingNewVaccine + 0.00)/Population)*100, 3) AS Vaccine_Percentage
+FROM PopVsVacc
